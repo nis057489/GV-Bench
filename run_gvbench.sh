@@ -85,11 +85,18 @@ rsync -av --progress \
   --exclude='*.log' \
   ${SOURCE_DIR}/ ${SCRATCH}/
 
-# Copy or link cached model weights if they exist
-# Typically stored in ~/.cache/torch or similar locations
+# Copy cached model weights if they exist
 if [ -d "${SOURCE_DIR}/.cache" ]; then
-  echo "Copying cached models..."
+  echo "Copying cached models from .cache..."
   cp -r ${SOURCE_DIR}/.cache ${SCRATCH}/
+fi
+
+# Copy cached image-matching-models weights if they exist
+if [ -d "${SOURCE_DIR}/third_party/image-matching-models/matching/model_weights" ]; then
+  echo "Copying cached model weights from image-matching-models..."
+  mkdir -p ${SCRATCH}/third_party/image-matching-models/matching/model_weights
+  rsync -av ${SOURCE_DIR}/third_party/image-matching-models/matching/model_weights/ \
+    ${SCRATCH}/third_party/image-matching-models/matching/model_weights/
 fi
 
 # Copy dataset images to scratch if they exist locally
@@ -249,12 +256,18 @@ if [ -d "results" ]; then
   rsync -av results/ ${PBS_O_WORKDIR}/results/
 fi
 
-# Optionally copy cached models back to source for future runs
+# Copy cached models back to source for future runs
 echo "Copying cached models back to source..."
 mkdir -p ${SOURCE_DIR}/.cache/torch
 mkdir -p ${SOURCE_DIR}/.cache/huggingface
 rsync -av ${TORCH_HOME}/ ${SOURCE_DIR}/.cache/torch/ 2>/dev/null || true
 rsync -av ${HF_HOME}/ ${SOURCE_DIR}/.cache/huggingface/ 2>/dev/null || true
+
+# Copy image-matching-models weights back to source
+echo "Copying model weights back to source..."
+mkdir -p ${SOURCE_DIR}/third_party/image-matching-models/matching/model_weights
+rsync -av ${SCRATCH}/third_party/image-matching-models/matching/model_weights/ \
+  ${SOURCE_DIR}/third_party/image-matching-models/matching/model_weights/ 2>/dev/null || true
 
 # Clean up scratch directory
 echo "=========================================="
