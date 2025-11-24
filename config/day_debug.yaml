@@ -7,3 +7,6 @@ data:
 
 # matchers you want to test
 matcher: [master, superpoint-lg, disk-lg, roma, sift-nn, sift-lg, duster, xfeat]
+
+# experiment log file
+exp_log: results_day_debug.txt
