@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Any, Dict
 import numpy as np
 from prettytable import PrettyTable
 from sklearn.metrics import average_precision_score, precision_recall_curve
@@ -124,6 +124,21 @@ def eval(scores, labels):
     return average_precision, recall_max
 
 
+def _parse_matcher_entry(entry: Any) -> tuple[str, Dict[str, Any]]:
+    """Normalize matcher entries that can be either strings or {name, params}."""
+    if isinstance(entry, str):
+        return entry, {}
+    if isinstance(entry, dict):
+        matcher_name = entry.get('name')
+        if matcher_name is None:
+            raise ValueError("Matcher entry dict must include a 'name' field")
+        params = entry.get('params') or {}
+        if not isinstance(params, dict):
+            raise ValueError("Matcher 'params' must be a dictionary")
+        return matcher_name, params
+    raise TypeError(f"Unsupported matcher entry type: {type(entry)}")
+
+
 def main(config):
     # ransac params, keep it consistent for fairness
     ransac_kwargs = {'ransac_reproj_thresh': 3,
@@ -154,13 +169,20 @@ def main(config):
         pass  # File already exists, so we skip writing headers
 
     # matching loop
-    for matcher in config.matcher:
-        assert matcher in available_models, f"Invalid model name. Choose from {available_models}"
-        print(f"Running {matcher}...")
+    for matcher_entry in config.matcher:
+        matcher_name, matcher_kwargs = _parse_matcher_entry(matcher_entry)
+        assert matcher_name in available_models, f"Invalid model name. Choose from {available_models}"
+
+        matcher_kwargs = dict(matcher_kwargs)  # shallow copy before mutation
+        if 'device' in matcher_kwargs:
+            warnings.warn("'device' is controlled by GV-Bench and will be ignored in matcher params")
+            matcher_kwargs.pop('device')
+
+        print(f"Running {matcher_name}...")
         # load matcher
         if torch.cuda.is_available():
-            model = get_matcher(matcher, device='cuda',
-                                ransac_kwargs=ransac_kwargs)
+            matcher_config = {**ransac_kwargs, **matcher_kwargs}
+            model = get_matcher(matcher_name, device='cuda', **matcher_config)
         else:
             raise ValueError('No GPU available')
         # compute scores
@@ -169,7 +191,7 @@ def main(config):
         mAP, MaxR = eval(scores, labels)
 
         # write to log
-        table.add_row([matcher, mAP, MaxR])
+        table.add_row([matcher_name, mAP, MaxR])
         # Append the new row to the file
         with open(log_path, "a") as file:  # Open in append mode
             row = table._rows[-1]  # Get the last row added

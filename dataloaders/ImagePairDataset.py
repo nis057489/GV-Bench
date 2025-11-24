@@ -1,4 +1,3 @@
-from matching.im_models.base_matcher import BaseMatcher
 import torch
 from torch.utils.data import Dataset
 from PIL import Image
@@ -11,6 +10,8 @@ IMM_PATH = os.path.join(os.path.dirname(__file__), '..',
                         'third_party', 'image-matching-models')
 if IMM_PATH not in sys.path:
     sys.path.insert(0, IMM_PATH)
+
+from matching.im_models.base_matcher import BaseMatcher
 
 
 class ImagePairDataset(Dataset):

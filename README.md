@@ -94,6 +94,21 @@ If you want to replicate the paper's result of IROS2024, please refer to [this](
   mAP, MaxR = eval(scores, labels)
   ```
 
+### MyMatcher scaffold & custom parameters
+- `third_party/image-matching-models/matching/im_models/my_matcher.py` shows how to plug a lightweight ORB+LSH matcher into the existing interface. Any kwargs you pass through the config are forwarded to the matcher, so you can tune `n_keypoints`, `distance_ratio`, or even the RANSAC thresholds.
+- Matchers in YAML configs now accept either plain strings or `{name, params}` dictionaries. Example:
+  ```yaml
+  matcher:
+    - superpoint-lg
+    - name: mymatcher
+      params:
+        n_keypoints: 2000
+        distance_ratio: 0.75
+        lsh_table_number: 8
+        ransac_reproj_thresh: 2.0
+  ```
+  This runs SuperPoint+LightGlue and the custom MyMatcher (with per-model hyper-parameters) in the same benchmark invocation.
+
 ## Experiments
 ```bash
 Seq: Day

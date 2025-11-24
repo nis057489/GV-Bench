@@ -27,3 +27,4 @@ loguru
 timm
 omegaconf
 prettytable
+certifi

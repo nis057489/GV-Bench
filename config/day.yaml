@@ -6,5 +6,19 @@ data:
   image_width: 512
   image_height: 288
 
-# matchers you want to test
-matcher: [master, superpoint-lg, disk-lg, roma, sift-nn, sift-lg, duster, xfeat, loftr]
+# matchers you want to test (list entries can be plain strings or {name, params})
+matcher:
+  - disk-lg
+  - roma
+  - sift-nn
+  - sift-lg
+  - duster
+  - xfeat
+  - loftr
+  - superpoint-lg
+  - master
+  - name: mymatcher
+    params:
+      n_keypoints: 2000
+      distance_ratio: 0.75
+      lsh_table_number: 8
