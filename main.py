@@ -1,19 +1,19 @@
+from typing import Tuple
+import numpy as np
+from prettytable import PrettyTable
+from sklearn.metrics import average_precision_score, precision_recall_curve
+import yaml
+import argparse
+from dataloaders.ImagePairDataset import ImagePairDataset
+import warnings
+import torch
+from torch.utils.data import DataLoader
+from tqdm import tqdm
 from matching import get_matcher, available_models
 from matching.im_models.base_matcher import BaseMatcher
 from matching.viz import *
-from tqdm import tqdm
-from torch.utils.data import DataLoader
-import torch
-from pathlib import Path
-import warnings
-from dataloaders.ImagePairDataset import ImagePairDataset
 import sys
-import argparse
-import yaml
-from sklearn.metrics import average_precision_score, precision_recall_curve
-from prettytable import PrettyTable
-import numpy as np
-from typing import Tuple
+from pathlib import Path
 
 # import image-matching-models early so it precedes any pip install
 IMM_PATH = 'third_party/image-matching-models'
@@ -141,9 +141,11 @@ def main(config):
     table.field_names = ["Matcher", "mAP", "Max Recall@1.0"]
 
     # Check if the file exists and write headers only once
-    exp_log = config.exp_log
+    log_path = Path(getattr(config, 'exp_log',
+                    f"{config.data.name}_results.log"))
+    log_path.parent.mkdir(parents=True, exist_ok=True)
     try:
-        with open(exp_log, "x") as file:  # "x" mode creates the file; raises an error if it exists
+        with open(log_path, "x") as file:  # "x" mode creates the file; raises an error if it exists
             # Format the headers
             headers = "| " + " | ".join(table.field_names) + " |"
             file.write(headers + "\n")  # Write headers
@@ -169,7 +171,7 @@ def main(config):
         # write to log
         table.add_row([matcher, mAP, MaxR])
         # Append the new row to the file
-        with open(exp_log, "a") as file:  # Open in append mode
+        with open(log_path, "a") as file:  # Open in append mode
             row = table._rows[-1]  # Get the last row added
             formatted_row = "| " + \
                 " | ".join(map(str, row)) + " |"  # Format the row
