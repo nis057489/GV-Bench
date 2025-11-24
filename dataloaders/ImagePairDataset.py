@@ -5,7 +5,9 @@ import os
 import sys
 from pathlib import Path
 from typing import Tuple
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'third_party', 'image-matching-models'))
+IMM_PATH = os.path.join(os.path.dirname(__file__), '..', 'third_party', 'image-matching-models')
+if IMM_PATH not in sys.path:
+    sys.path.insert(0, IMM_PATH)
 from matching.im_models.base_matcher import BaseMatcher
 
 class ImagePairDataset(Dataset):

@@ -8,7 +8,9 @@ import numpy as np
 from typing import Tuple
 
 ### import image-matching-models
-sys.path.append('third_party/image-matching-models')
+IMM_PATH = 'third_party/image-matching-models'
+if IMM_PATH not in sys.path:
+    sys.path.insert(0, IMM_PATH)
 import warnings
 warnings.filterwarnings("ignore")
 from matching import get_matcher, available_models
