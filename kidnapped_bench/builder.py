@@ -68,10 +68,21 @@ def build_episodes_from_gvbench(
 
     config_ns = _dict_to_namespace(config_dict)
     config_ns.data.image_dir = str(images_root)
+
     config_dir = Path(config_path).parent
+    repo_root = Path(__file__).resolve().parents[1]
     pairs_info_path = Path(config_ns.data.pairs_info)
     if not pairs_info_path.is_absolute():
-        config_ns.data.pairs_info = str((config_dir / pairs_info_path).resolve())
+        candidate_paths = [config_dir / pairs_info_path, repo_root / pairs_info_path]
+        resolved_path = None
+        for candidate in candidate_paths:
+            if candidate.exists():
+                resolved_path = candidate.resolve()
+                break
+        if resolved_path is None:
+            # Fall back to resolving relative to the config directory to preserve previous behavior.
+            resolved_path = (config_dir / pairs_info_path).resolve()
+        config_ns.data.pairs_info = str(resolved_path)
 
     dataset = ImagePairDataset(config_ns.data, transform=None)
     labels = list(dataset.label)
