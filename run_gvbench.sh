@@ -170,13 +170,25 @@ cp -v result*.txt ${RESULTS_DIR}/results/${CONFIG_NAME}/ 2>/dev/null || true
 [ -d "results" ] && rsync -a results/ ${RESULTS_DIR}/results/${CONFIG_NAME}/
 
 # Cache models for next run
-echo "Caching models..."
-mkdir -p ${SOURCE_DIR}/.cache/{torch,huggingface}
+echo "Caching models back to source..."
+mkdir -p ${SOURCE_DIR}/.cache/torch
+mkdir -p ${SOURCE_DIR}/.cache/huggingface
 mkdir -p ${SOURCE_DIR}/third_party/image-matching-models/matching/model_weights
-rsync -a ${TORCH_HOME}/ ${SOURCE_DIR}/.cache/torch/ 2>/dev/null || true
-rsync -a ${HF_HOME}/ ${SOURCE_DIR}/.cache/huggingface/ 2>/dev/null || true
-rsync -a ${SCRATCH}/third_party/image-matching-models/matching/model_weights/ \
-  ${SOURCE_DIR}/third_party/image-matching-models/matching/model_weights/ 2>/dev/null || true
+
+echo "  Syncing torch cache..."
+rsync -av --info=progress2 ${TORCH_HOME}/ ${SOURCE_DIR}/.cache/torch/ 2>/dev/null || true
+
+echo "  Syncing huggingface cache..."
+rsync -av --info=progress2 ${HF_HOME}/ ${SOURCE_DIR}/.cache/huggingface/ 2>/dev/null || true
+
+echo "  Syncing model weights..."
+if [ -d "${SCRATCH}/third_party/image-matching-models/matching/model_weights" ]; then
+  rsync -av --info=progress2 ${SCRATCH}/third_party/image-matching-models/matching/model_weights/ \
+    ${SOURCE_DIR}/third_party/image-matching-models/matching/model_weights/
+  echo "  Model weights cached: $(ls -lh ${SOURCE_DIR}/third_party/image-matching-models/matching/model_weights/ 2>/dev/null | wc -l) files"
+else
+  echo "  Warning: No model weights found in scratch"
+fi
 
 # Cleanup
 cd ${RESULTS_DIR}
