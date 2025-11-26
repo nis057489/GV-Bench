@@ -2,3 +2,7 @@ __pycache__
 .vscode
 dataset/
 .conda_env/
+results/
+*.log
+*.out
+.cache
