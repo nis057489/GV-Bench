@@ -122,14 +122,22 @@ if ! command -v conda &> /dev/null; then
   wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ${SCRATCH}/miniconda.sh
   bash ${SCRATCH}/miniconda.sh -b -p ${SCRATCH}/miniconda3
   rm ${SCRATCH}/miniconda.sh
-  eval "$(${SCRATCH}/miniconda3/bin/conda shell.bash hook)"
-  conda config --set auto_activate_base false
+  CONDA_BASE="${SCRATCH}/miniconda3"
 else
-  eval "$(conda shell.bash hook)"
+  CONDA_BASE="$(conda info --base)"
 fi
 
-# Create environment
-conda create -n gvbench python=3.11 -y
+# shellcheck disable=SC1090
+source "${CONDA_BASE}/etc/profile.d/conda.sh"
+
+if [ "${CONDA_BASE}" = "${SCRATCH}/miniconda3" ]; then
+  conda config --set auto_activate_base false
+fi
+
+# Create environment if missing
+if ! conda env list | awk '{print $1}' | grep -qx "gvbench"; then
+  conda create -n gvbench python=3.11 -y
+fi
 conda activate gvbench
 
 # Install dependencies

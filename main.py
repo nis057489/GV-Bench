@@ -13,6 +13,8 @@ import warnings
 warnings.filterwarnings("ignore")
 from matching import get_matcher, available_models
 from matching.im_models.base_matcher import BaseMatcher
+from custom_matchers import CUSTOM_AVAILABLE_MODELS, get_custom_matcher
+ALL_AVAILABLE_MODELS = list(available_models) + list(CUSTOM_AVAILABLE_MODELS)
 from matching.viz import *
 from pathlib import Path
 import torch
@@ -38,7 +40,7 @@ def parser():
     # Check for config file
     if args.config is None:
         if args.support_model:
-            print(f"Available models: {available_models}")
+            print(f"Available models: {ALL_AVAILABLE_MODELS}")
             sys.exit(0)
         else:
             raise ValueError('Please provide a config file')
@@ -79,8 +81,10 @@ def match(matcher, loader, image_size=512):
         num_inliers, H, mkpts0, mkpts1 = result['num_inliers'], result['H'], result['inlier_kpts0'], result['inlier_kpts1']
         scores.append(num_inliers)
     # normalize
-    scores = np.array(scores)
-    scores_norm = (scores - np.min(scores)) / (np.max(scores)- np.min(scores))
+    scores = np.array(scores, dtype=np.float32)
+    score_min = np.min(scores)
+    score_range = np.max(scores) - score_min
+    scores_norm = np.zeros_like(scores) if score_range == 0 else (scores - score_min) / score_range
     return scores_norm
 
 # max recall @ 100% precision
@@ -136,13 +140,17 @@ def main(config):
 
     # matching loop
     for matcher in config.matcher:
-        assert matcher in available_models, f"Invalid model name. Choose from {available_models}"
+        assert matcher in ALL_AVAILABLE_MODELS, f"Invalid model name. Choose from {ALL_AVAILABLE_MODELS}"
         print(f"Running {matcher}...")
         # load matcher
-        if torch.cuda.is_available():
-            model = get_matcher(matcher, device='cuda', ransac_kwargs=ransac_kwargs)   
+        if matcher in available_models:
+            if torch.cuda.is_available():
+                model = get_matcher(matcher, device='cuda', ransac_kwargs=ransac_kwargs)
+            else:
+                raise ValueError('No GPU available')
         else:
-            raise ValueError('No GPU available')
+            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            model = get_custom_matcher(matcher, device=device, ransac_kwargs=ransac_kwargs)
         # compute scores
         scores = match(model, gvbench_loader, image_size=(config.data.image_height, config.data.image_width))
         mAP, MaxR = eval(scores, labels)
